@@ -1,264 +1,293 @@
-# BridgeSync
+<div align="center">
 
-AI-driven government interoperability platform for Karnataka's Single Window Portal — enables citizens to submit one application that automatically routes to all required departments, with officers reviewing and approving in real time.
+# 🏛️ BridgeSync
 
----
+### *One Application. Every Department. Zero Friction.*
 
-## What It Does
+**Submitted for [AI for Bharat Hackathon](https://aifor.bharathacks.in/)**
 
-Citizens submit a single business license application. BridgeSync translates and routes it simultaneously to the **Food Safety Department** and **Labour Department**, each receiving fields mapped to their own native schema. Officers review independently; the overall status is computed intelligently across all departments.
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Visit%20App-4F46E5?style=for-the-badge)](https://bridge-sync-hub--madukalshashank.replit.app/)
+[![Built with](https://img.shields.io/badge/Built%20with-React%20%2B%20Express%20%2B%20Gemini-0EA5E9?style=for-the-badge)](#tech-stack)
+[![Hackathon](https://img.shields.io/badge/Hackathon-AI%20for%20Bharat-FF6B35?style=for-the-badge)](#)
 
-### Key Features
-
-- **Single Window Citizen Portal** — One form, routed to all departments automatically
-- **AI Schema Mapping** — Gemini maps fields between department systems with confidence scores (falls back to mock if no API key)
-- **AI Anomaly Detection** — Detects SLA breaches, idle applications, and processing bottlenecks
-- **AI Citizen Assistant** — Multilingual chatbot (English / Kannada) for application guidance
-- **Officer Dashboard** — Department-scoped queue, approve/reject with notes, document requests
-- **Admin Console** — Live SLA monitor, schema mapper, department onboarding, real-time event bus log
-- **Graceful AI degradation** — All Gemini calls fall back to deterministic mocks so the UI always works without an API key
+</div>
 
 ---
 
-## Tech Stack
+## 🎯 The Problem
+
+India's government licensing process forces citizens to visit **multiple department portals**, fill **redundant forms**, upload the **same documents repeatedly**, and track **separate application IDs** — all for a single business license.
+
+Each department runs its own legacy system with **incompatible field schemas**, creating a fragmented, opaque experience for citizens and a siloed workflow nightmare for officers.
+
+---
+
+## 💡 Our Solution
+
+**BridgeSync** is an AI-driven interoperability platform that sits between citizens and government departments.
+
+A citizen fills **one unified form**. BridgeSync's AI engine:
+1. **Translates** the form fields into each department's native schema automatically
+2. **Routes** the application simultaneously to all required departments
+3. **Tracks** the cross-department status in real time
+4. **Assists** citizens in their language via an AI chatbot
+
+Officers work inside their familiar department view. The citizen sees one unified status. No duplication. No lost applications.
+
+> 🎥 **[Try the Live Demo →](https://bridge-sync-hub--madukalshashank.replit.app/)**
+
+---
+
+## 🖼️ Key Screens
+
+| Portal | Who Uses It | What It Does |
+|---|---|---|
+| **Citizen Portal** `/` | Citizens | Submit one application, track real-time status, respond to document requests, chat with AI assistant |
+| **Officer Dashboard** `/officer` | Dept. Officers | Review department-scoped queue, approve/reject with notes, request additional documents |
+| **Admin Console** `/admin` | Administrators | Live SLA monitor, AI schema mapper, department onboarding, real-time event bus |
+
+---
+
+## ✨ Features
+
+### 🤖 AI-Powered Core
+- **Schema Mapper** — Gemini 1.5 Flash automatically maps fields between the Single Window schema and each department's native field names, with confidence scores and human-override support
+- **Anomaly Detector** — Scans live data for SLA breaches, idle applications, and processing bottlenecks — surfaces actionable insights to admins
+- **Citizen Assistant** — Context-aware AI chatbot that answers questions about application status in **English and Kannada (ಕನ್ನಡ)**
+- **Schema Discovery** — AI infers field definitions for any department system type automatically
+
+### ⚡ Real-Time Operations
+- Live SLA monitor with auto-refresh every 30 seconds
+- Full event bus log — every state transition across every department, in order
+- Per-department health scores computed from SLA compliance, rejection rates, and processing time
+- Workflow state translator — maps Single Window states to department-specific states
+
+### 🏗️ Engineering
+- **Contract-first API** — OpenAPI spec → Orval codegen → TanStack Query hooks (zero hand-written API calls)
+- **Adapter pattern** — Field-mapping layer per department, stored and human-confirmable in `field_mappings` table
+- **Graceful degradation** — All AI calls fall back to deterministic mock responses; the app works fully without a Gemini key
+- **Full audit trail** — Every action logged to `workflow_events` and `event_log` tables
+
+---
+
+## 🏗️ Architecture
+
+```
+                        ┌──────────────────────────────┐
+                        │        Citizen Browser        │
+                        │   React 19 + Vite + shadcn   │
+                        └──────────────┬───────────────┘
+                                       │ /api (HTTP)
+                        ┌──────────────▼───────────────┐
+                        │       Express 5 API Server    │
+                        │   TypeScript + Drizzle ORM   │
+                        └──┬──────────┬────────────┬───┘
+                           │          │            │
+               ┌───────────▼──┐  ┌────▼────┐  ┌───▼──────────────┐
+               │  PostgreSQL  │  │ Gemini  │  │  OpenAPI Contract │
+               │  (8 tables)  │  │  1.5F   │  │  + Orval Codegen  │
+               └──────────────┘  └─────────┘  └──────────────────┘
+```
+
+**Departments receive applications in their own native field format:**
+
+```
+Single Window Form
+  citizenName → Food Safety: applicant_name  |  Labour: proprietor_name
+  businessName → Food Safety: establishment_name  |  Labour: worker_establishment_name
+  district → Food Safety: jurisdiction_area  |  Labour: district_code
+  ... (10 fields, all AI-mapped)
+```
+
+---
+
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Runtime | Node.js 24, TypeScript 5.9 |
-| Frontend | React 19, Vite 7, Wouter, TanStack Query, Tailwind CSS, shadcn/ui, Zustand, Recharts |
-| Backend | Express 5 (port 8080, base path `/api`) |
-| Database | PostgreSQL 16, Drizzle ORM |
-| AI | Google Gemini 1.5 Flash — with mock fallbacks |
-| Validation | Zod v4, drizzle-zod |
-| API Codegen | Orval (from OpenAPI spec) |
-| Build | esbuild (CJS bundle) |
-| Package Manager | pnpm workspaces |
+| **Runtime** | Node.js 24, TypeScript 5.9 |
+| **Frontend** | React 19, Vite 7, Wouter, TanStack Query, Tailwind CSS, shadcn/ui, Zustand, Recharts |
+| **Backend** | Express 5 (port 8080, base path `/api`) |
+| **Database** | PostgreSQL 16, Drizzle ORM |
+| **AI** | Google Gemini 1.5 Flash — with deterministic mock fallbacks |
+| **Validation** | Zod v4, drizzle-zod |
+| **API Codegen** | Orval (OpenAPI → TanStack Query hooks + Zod schemas) |
+| **Build** | esbuild (CJS bundle) |
+| **Package Manager** | pnpm workspaces (monorepo) |
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
-Bridge-Sync-Hub-main/
+Bridge-Sync-Hub/
 ├── artifacts/
 │   ├── api-server/src/
-│   │   ├── app.ts                           # Express app setup, mounts router at /api
-│   │   ├── routes/                          # health, applications, departments, analytics, ai
+│   │   ├── app.ts                           # Express setup, /api mount
+│   │   ├── routes/                          # applications, departments, analytics, ai
 │   │   └── lib/aiService.ts                 # Gemini integration + mock fallbacks
 │   └── bridgesync/src/
-│       ├── App.tsx                          # Router (wouter), QueryClient, dark mode
+│       ├── App.tsx                          # Router, QueryClient, dark mode
 │       ├── pages/
-│       │   ├── citizen/CitizenPortal.tsx    # Application form + tracker + AI chatbot
-│       │   ├── officer/OfficerDashboard.tsx # Officer login + queue + approve/reject
-│       │   └── admin/AdminDashboard.tsx     # SLA monitor, schema mapper, event bus
-│       │       └── tabs/                    # SchemaMapperTab, OnboardingTab, WorkflowTab
-│       ├── store/useDemoStore.ts            # Zustand: demo mode, language (EN/KN)
-│       └── components/layout/Navbar.tsx
+│       │   ├── citizen/CitizenPortal.tsx    # Form + tracker + chatbot
+│       │   ├── officer/OfficerDashboard.tsx # Queue + approve/reject
+│       │   └── admin/AdminDashboard.tsx     # SLA + schema mapper + event bus
+│       └── store/useDemoStore.ts            # Zustand: demo mode, language
 ├── lib/
-│   ├── api-spec/openapi.yaml                # OpenAPI spec — source of truth for all API contracts
-│   ├── api-client-react/                    # Generated TanStack Query hooks (do not edit manually)
-│   ├── api-zod/src/index.ts                 # Generated Zod schemas (only re-exports ./generated/api)
+│   ├── api-spec/openapi.yaml                # Source of truth for all API contracts
+│   ├── api-client-react/                    # Generated TanStack Query hooks
+│   ├── api-zod/                             # Generated Zod schemas
 │   └── db/src/schema/applications.ts       # All 8 Drizzle table definitions
 └── package.json                             # pnpm workspace root
 ```
 
 ---
 
-## Database Schema
-
-8 tables defined in `lib/db/src/schema/applications.ts`:
+## 🗄️ Database Schema
 
 | Table | Purpose |
 |---|---|
 | `applications` | Master citizen application record |
-| `dept_applications` | Per-department copy with native field mappings |
+| `dept_applications` | Per-department copy with native field mapping |
 | `document_requests` | Documents requested by officers from citizens |
 | `workflow_events` | Full audit trail of every state transition |
 | `officers` | Officer roster per department |
-| `field_mappings` | AI-generated field mappings between systems (with confidence scores) |
+| `field_mappings` | AI-generated field mappings with confidence scores |
 | `departments` | Onboarded departments with adapter status |
-| `workflow_states` | State translation table (SW ↔ Food Safety ↔ Labour) |
+| `workflow_states` | State translation (Single Window ↔ departments) |
 | `event_log` | Real-time event bus log |
 
 ---
 
-## Prerequisites
+## 🚀 Run Locally
 
-- **Node.js v20+** — https://nodejs.org (project was built on Node 24)
+### Prerequisites
+
+- **Node.js v20+** — https://nodejs.org
 - **pnpm** — `npm install -g pnpm`
 - **PostgreSQL 16** — https://www.postgresql.org/download/
-- **Google Gemini API Key** *(optional)* — https://aistudio.google.com/apikey — AI features fall back to mock responses if absent
+- **Gemini API Key** *(optional — app works without it)* — https://aistudio.google.com/apikey
 
-> **Windows:** After installing PostgreSQL, add `C:\Program Files\PostgreSQL\16\bin` to your system PATH.
-
----
-
-## Local Setup
-
-### 1. Install Dependencies
+### 1. Install
 
 ```bash
+git clone <repo-url>
 cd Bridge-Sync-Hub-main
-```
-
-> **Windows only** — the root `package.json` has a `preinstall` script that uses Linux shell syntax. Remove the `"preinstall"` line from `package.json` before installing:
-> ```json
-> // Delete this line from "scripts":
-> "preinstall": "sh -c 'rm -f package-lock.json yarn.lock ...'",
-> ```
-
-```bash
 pnpm install --ignore-scripts
 ```
 
----
+> **Windows only:** Remove the `"preinstall"` line from root `package.json` (it uses Linux shell syntax), then run the install command above.
 
 ### 2. Environment Variables
 
-Create **`artifacts/api-server/.env`**:
-
+**`artifacts/api-server/.env`**
 ```env
 PORT=8080
 DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/bridgesync
-GEMINI_API_KEY=your_gemini_api_key_here   # optional — mocks used if absent
+GEMINI_API_KEY=your_key_here    # optional
 NODE_ENV=development
 ```
 
-Create **`artifacts/bridgesync/.env`**:
-
+**`artifacts/bridgesync/.env`**
 ```env
 PORT=21753
 BASE_PATH=/
 ```
 
----
-
-### 3. Set Up the Database
+### 3. Database Setup
 
 ```bash
-# Create the database
 psql -U postgres -c "CREATE DATABASE bridgesync;"
-
-# Push the Drizzle schema
 pnpm --filter @workspace/db run push
 ```
 
----
-
-### 4. Run the App
+### 4. Start
 
 ```bash
-# Terminal 1 — API server (port 8080)
+# Terminal 1 — API (port 8080)
 pnpm --filter @workspace/api-server run dev
 
 # Terminal 2 — Frontend (port 21753)
 pnpm --filter @workspace/bridgesync run dev
 ```
 
-Open **http://localhost:21753** in your browser.
+Open **http://localhost:21753**
 
 ---
 
-## Pages & Routes
-
-| URL | Role | Description |
-|---|---|---|
-| `/` | Citizen | Submit application, track status by App ID, AI chatbot |
-| `/officer` | Officer | Department login, application queue, approve/reject, request docs |
-| `/admin` | Admin | SLA monitor, AI schema mapper, department onboarding, event bus |
-
----
-
-## Commands Reference
-
-```bash
-# Run API server (port 8080)
-pnpm --filter @workspace/api-server run dev
-
-# Run frontend (port 21753)
-pnpm --filter @workspace/bridgesync run dev
-
-# Full typecheck across all packages
-pnpm run typecheck
-
-# Build all packages
-pnpm run build
-
-# Push DB schema changes (dev only)
-pnpm --filter @workspace/db run push
-
-# Regenerate API hooks + Zod schemas from OpenAPI spec
-pnpm --filter @workspace/api-spec run codegen
-```
-
-> **After running codegen**, always overwrite `lib/api-zod/src/index.ts` to only export `./generated/api` — Orval regenerates with both exports and causes a TS2308 duplicate identifier error.
-
----
-
-## API Endpoints
+## 📡 API Reference
 
 ### Applications
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/applications` | Submit a new citizen application |
-| `GET` | `/api/applications/:appId` | Full application detail + workflow timeline |
-| `POST` | `/api/applications/:appId/respond-document` | Citizen responds to a document request |
+| `GET` | `/api/applications/:appId` | Full details + workflow timeline |
+| `POST` | `/api/applications/:appId/respond-document` | Citizen responds to document request |
 
 ### Departments & Officers
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/api/departments` | List all onboarded departments |
 | `POST` | `/api/departments` | Onboard a new department |
-| `GET` | `/api/dept/:deptName/applications` | Applications queue for a department |
-| `PUT` | `/api/dept/:deptName/applications/:appId/status` | Update application status (approve/reject/review) |
+| `GET` | `/api/dept/:deptName/applications` | Department application queue |
+| `PUT` | `/api/dept/:deptName/applications/:appId/status` | Update status (approve/reject) |
 | `POST` | `/api/dept/:deptName/applications/:appId/request-document` | Request document from citizen |
-| `GET` | `/api/officers/:deptName` | List officers for a department |
+| `GET` | `/api/officers/:deptName` | List department officers |
 
-### AI Features
+### AI
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/ai/schema-map` | Map fields between two department systems |
-| `POST` | `/api/ai/anomaly-scan` | Scan for SLA breaches and processing anomalies |
-| `POST` | `/api/ai/schema-discover` | Discover fields for a department system type |
-| `POST` | `/api/ai/chat` | Citizen assistant (multilingual, app-context-aware) |
+| `POST` | `/api/ai/schema-map` | Map fields between department systems |
+| `POST` | `/api/ai/anomaly-scan` | Detect SLA breaches and anomalies |
+| `POST` | `/api/ai/schema-discover` | Discover fields for a department system |
+| `POST` | `/api/ai/chat` | Multilingual citizen assistant |
 
 ### Analytics & Events
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/analytics/summary` | Overall stats (total, pending, approved, SLA breaches, avg processing days) |
-| `GET` | `/api/analytics/dept-stats` | Per-department health scores and metrics |
-| `GET` | `/api/events/stream` | Last 50 events from the audit log |
-| `GET` | `/api/workflow-states` | Workflow state translation table |
-| `POST` | `/api/workflow-states` | Add a workflow state mapping |
-
-### Field Mappings
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/field-mappings/:source/:target` | Get saved field mappings between two systems |
-| `PUT` | `/api/field-mappings/:id` | Confirm or correct a field mapping |
+| `GET` | `/api/analytics/summary` | Overall stats and KPIs |
+| `GET` | `/api/analytics/dept-stats` | Per-department health scores |
+| `GET` | `/api/events/stream` | Last 50 audit log events |
 
 ---
 
-## Architecture Notes
+## 🧠 Key Design Decisions
 
-- **Contract-first API** — `lib/api-spec/openapi.yaml` is the source of truth. Orval generates TanStack Query hooks and Zod schemas from it. Never write API hooks by hand.
-- **Adapter pattern** — Each department has a field-mapping layer that translates Single Window fields to department-specific names, tracked in `field_mappings`.
-- **AI with graceful degradation** — All Gemini calls are wrapped in try/catch. When `GEMINI_API_KEY` is absent or a call fails, deterministic mock responses are returned so the UI always works.
-- **Dark mode enforced** — `document.documentElement.classList.add("dark")` on mount. All UI is built for the dark command-center aesthetic.
-- **Bilingual** — English / Kannada (ಕನ್ನಡ) support via language toggle in the navbar.
-- **Demo mode** — Navbar toggle for presentations.
+**Contract-first API** — The OpenAPI spec (`lib/api-spec/openapi.yaml`) is the single source of truth. Orval generates all TanStack Query hooks and Zod validation schemas from it automatically. No API code is written by hand.
+
+**Graceful AI degradation** — Every Gemini call is wrapped in try/catch with a deterministic fallback. The platform works fully in demo environments without an API key — judges will see real functionality regardless.
+
+**Adapter pattern for interoperability** — Rather than forcing departments to change their systems, BridgeSync adds a translation layer. Field mappings are stored, human-confirmable, and improvable over time.
+
+**Full observability** — Every state change across every department is timestamped and logged. Admins get a real-time event bus and officers get a complete workflow timeline per application.
 
 ---
 
-## Troubleshooting
+## 🔧 Developer Commands
 
-| Issue | Fix |
-|---|---|
-| `sh is not recognized` on Windows | Remove `"preinstall"` from root `package.json`, run `pnpm install --ignore-scripts` |
-| `DATABASE_URL must be set` | Create `.env` in `artifacts/api-server/` with your `DATABASE_URL` |
-| `PORT is required` | Ensure `.env` files exist in both `api-server/` and `bridgesync/` |
-| `psql not found` | Add PostgreSQL `bin/` folder to system PATH |
-| AI features return mock data | Add `GEMINI_API_KEY` to `artifacts/api-server/.env` — this is expected behavior without it |
-| TS2308 after codegen | Overwrite `lib/api-zod/src/index.ts` to only `export * from './generated/api'` |
-| Schema push fails | Ensure PostgreSQL is running and the `bridgesync` database exists |
-| Replit plugin errors locally | Remove `runtimeErrorOverlay()` from `artifacts/bridgesync/vite.config.ts` |
+```bash
+pnpm --filter @workspace/api-server run dev     # Run backend
+pnpm --filter @workspace/bridgesync run dev     # Run frontend
+pnpm --filter @workspace/db run push            # Push DB schema
+pnpm --filter @workspace/api-spec run codegen   # Regenerate API hooks from OpenAPI
+pnpm run typecheck                              # Full typecheck
+pnpm run build                                  # Build all packages
+```
+
+> **Post-codegen:** Always overwrite `lib/api-zod/src/index.ts` to only `export * from './generated/api'` — Orval generates a duplicate export that causes TS2308.
+
+---
+
+## 🤝 Contributing
+
+This project was built for the **AI for Bharat Hackathon**. Contributions, issues, and feature suggestions are welcome.
+
+---
+
+<div align="center">
+
+**Built with ❤️ for AI for Bharat Hackathon**
+
+[🚀 Live Demo](https://bridge-sync-hub--madukalshashank.replit.app/) • [📋 API Spec](lib/api-spec/openapi.yaml) • [🗄️ Schema](lib/db/src/schema/applications.ts)
+
+</div>
