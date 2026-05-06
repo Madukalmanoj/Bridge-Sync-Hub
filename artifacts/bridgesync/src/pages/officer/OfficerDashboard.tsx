@@ -143,7 +143,7 @@ function OfficerQueue({ department, officerId, onLogout }: any) {
                   badgeColor = "bg-amber-500/10 text-amber-700 dark:text-amber-400";
                 }
                 
-                if (app.status === 'approved' || app.status === 'rejected') {
+                if (app.status === 'Approved' || app.status === 'Rejected') {
                   statusColor = "border-l-4 border-l-muted opacity-60";
                   badgeColor = "bg-muted text-muted-foreground";
                 }
@@ -157,7 +157,7 @@ function OfficerQueue({ department, officerId, onLogout }: any) {
                     <div className="flex justify-between items-start mb-2">
                       <span className="font-mono text-sm font-semibold">{app.appId}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeColor}`}>
-                        {app.status === 'pending' ? `${days}d pending` : app.status}
+                        {app.status}
                       </span>
                     </div>
                     <div className="font-medium truncate">{app.citizenName}</div>
@@ -180,7 +180,7 @@ function OfficerQueue({ department, officerId, onLogout }: any) {
             <div>
               <div className="flex items-center gap-3">
                 <h2 className="font-bold text-xl font-mono">{selectedApp?.appId}</h2>
-                <Badge variant={selectedApp?.status === 'approved' ? 'default' : selectedApp?.status === 'rejected' ? 'destructive' : 'secondary'} className="uppercase">
+                <Badge variant={selectedApp?.status === 'Approved' ? 'default' : selectedApp?.status === 'Rejected' ? 'destructive' : 'secondary'} className="uppercase">
                   {selectedApp?.status}
                 </Badge>
               </div>
@@ -223,7 +223,7 @@ function OfficerQueue({ department, officerId, onLogout }: any) {
               </CardContent>
             </Card>
 
-            {selectedApp?.status === 'pending' && (
+            {!['Approved', 'Rejected'].includes(selectedApp?.status ?? '') && (
               <ActionPanel department={department} appId={selectedAppId} />
             )}
           </div>
@@ -254,7 +254,7 @@ function ActionPanel({ department, appId }: { department: string, appId: string 
   };
 
   const handleApprove = () => {
-    updateStatus.mutate({ deptName: department, appId, data: { status: 'approved' } }, {
+    updateStatus.mutate({ deptName: department, appId, data: { status: 'Approved' } }, {
       onSuccess: () => {
         toast({ title: "Approved", description: "Application moved to approved state.", variant: "default" });
         showWa("Application Approved ✅", `Dear Citizen, your application ${appId} for ${department} has been approved.`);
@@ -264,7 +264,7 @@ function ActionPanel({ department, appId }: { department: string, appId: string 
 
   const handleReject = () => {
     if (!rejectReason) return toast({ title: "Reason Required", variant: "destructive" });
-    updateStatus.mutate({ deptName: department, appId, data: { status: 'rejected', notes: rejectReason } }, {
+    updateStatus.mutate({ deptName: department, appId, data: { status: 'Rejected', notes: rejectReason } }, {
       onSuccess: () => {
         toast({ title: "Rejected", description: "Application rejected.", variant: "default" });
         showWa("Application Rejected ❌", `Dear Citizen, your application ${appId} for ${department} was rejected. Reason: ${rejectReason}`);
