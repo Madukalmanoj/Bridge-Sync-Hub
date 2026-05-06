@@ -108,6 +108,17 @@ router.put("/dept/:deptName/applications/:appId/status", async (req, res): Promi
     .where(and(eq(deptApplicationsTable.appId, appId), eq(deptApplicationsTable.department, deptName)))
     .returning();
 
+  // Build rich notes for the workflow event
+  const richNotes = notes
+    ? notes
+    : status === "Approved"
+      ? `Application reviewed and approved by ${actor ?? "Officer"}. Decision: ✓ Granted.`
+      : status === "Rejected"
+        ? `Application rejected by ${actor ?? "Officer"}.`
+        : status === "Under Review"
+          ? `Application is now under active review by ${actor ?? "Officer"}.`
+          : null;
+
   await db.insert(workflowEventsTable).values({
     appId,
     department: deptName,
@@ -115,13 +126,32 @@ router.put("/dept/:deptName/applications/:appId/status", async (req, res): Promi
     fromState: existing.status,
     toState: status,
     actor: actor ?? "Officer",
-    notes: notes ?? null,
+    notes: richNotes,
   });
 
+  // Smart overallStatus: check all dept statuses after this update
   if (status === "Approved" || status === "Rejected") {
+    const allDeptApps = await db
+      .select()
+      .from(deptApplicationsTable)
+      .where(eq(deptApplicationsTable.appId, appId));
+
+    const allStatuses = allDeptApps.map(d =>
+      d.department === deptName ? status : d.status
+    );
+
+    let newOverallStatus: string;
+    if (allStatuses.some(s => s === "Rejected")) {
+      newOverallStatus = "Rejected";
+    } else if (allStatuses.every(s => s === "Approved")) {
+      newOverallStatus = "Approved";
+    } else {
+      newOverallStatus = "Under Review";
+    }
+
     await db
       .update(applicationsTable)
-      .set({ overallStatus: status })
+      .set({ overallStatus: newOverallStatus })
       .where(eq(applicationsTable.appId, appId));
   }
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useGetFieldMappings, useRunSchemaMapping, useUpdateFieldMapping } from "@workspace/api-client-react";
+import { useGetFieldMappings, useRunSchemaMapping, useUpdateFieldMapping, getGetFieldMappingsQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,7 +13,7 @@ export function SchemaMapperTab() {
   const { toast } = useToast();
 
   const { data: mappings, isLoading, refetch } = useGetFieldMappings(sourceSystem, targetSystem, {
-    query: { enabled: !!sourceSystem && !!targetSystem }
+    query: { queryKey: getGetFieldMappingsQueryKey(sourceSystem, targetSystem), enabled: !!sourceSystem && !!targetSystem }
   });
 
   const runMapping = useRunSchemaMapping();

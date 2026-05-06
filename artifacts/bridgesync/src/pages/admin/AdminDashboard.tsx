@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useGetAnalyticsSummary, useGetDeptStats, useGetEventStream, useRunAnomalyScan } from "@workspace/api-client-react";
+import { useGetAnalyticsSummary, useGetDeptStats, useGetEventStream, useRunAnomalyScan, getGetAnalyticsSummaryQueryKey, getGetDeptStatsQueryKey, getGetEventStreamQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,11 +64,11 @@ function NavItem({ active, onClick, icon, label }: any) {
 
 function MonitorTab() {
   const { data: summary, isLoading: isSummaryLoading } = useGetAnalyticsSummary({
-    query: { refetchInterval: 30000 }
+    query: { queryKey: getGetAnalyticsSummaryQueryKey(), refetchInterval: 30000 }
   });
   
   const { data: deptStats, isLoading: isStatsLoading } = useGetDeptStats({
-    query: { refetchInterval: 30000 }
+    query: { queryKey: getGetDeptStatsQueryKey(), refetchInterval: 30000 }
   });
 
   const scanAnomaly = useRunAnomalyScan();
@@ -82,7 +82,7 @@ function MonitorTab() {
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => window.print()} className="font-mono text-xs">Export PDF</Button>
-          <Button onClick={() => scanAnomaly.mutate({})} disabled={scanAnomaly.isPending} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+          <Button onClick={() => scanAnomaly.mutate(undefined as void)} disabled={scanAnomaly.isPending} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
             <AlertTriangle className="mr-2 h-4 w-4" /> Run AI Anomaly Scan
           </Button>
         </div>
@@ -194,7 +194,7 @@ function KpiCard({ title, value, loading, trend, alert }: any) {
 function EventBusTab() {
   const { isDemoMode } = useDemoStore();
   const { data: events, isLoading } = useGetEventStream({
-    query: { refetchInterval: isDemoMode ? 1000 : 5000 }
+    query: { queryKey: getGetEventStreamQueryKey(), refetchInterval: isDemoMode ? 1000 : 5000 }
   });
 
   return (

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useDemoStore } from "@/store/useDemoStore";
-import { Activity, Search, FileText, CheckCircle2, Clock, Check, ArrowRight, Upload } from "lucide-react";
+import { Activity, Search, FileText, CheckCircle2, Clock, Check, ArrowRight, Upload, XCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -341,7 +341,7 @@ function ApplicationTracker({ initialId }: { initialId: string }) {
     query: {
       enabled: !!activeId,
       queryKey: getGetApplicationQueryKey(activeId),
-      refetchInterval: 10000, // Poll every 10s
+      refetchInterval: 5000, // Poll every 5s for live updates
     }
   });
 
@@ -386,7 +386,7 @@ function ApplicationTracker({ initialId }: { initialId: string }) {
             <Card className="border-border/50 shadow-md overflow-hidden">
               <div className="bg-muted px-6 py-4 border-b flex justify-between items-center">
                 <h3 className="font-semibold">Application Details</h3>
-                <Badge variant={data.application.overallStatus === 'approved' ? 'default' : data.application.overallStatus === 'rejected' ? 'destructive' : 'secondary'} className="capitalize">
+                <Badge variant={data.application.overallStatus === 'Approved' ? 'default' : data.application.overallStatus === 'Rejected' ? 'destructive' : 'secondary'} className="capitalize">
                   {data.application.overallStatus}
                 </Badge>
               </div>
@@ -424,7 +424,10 @@ function ApplicationTracker({ initialId }: { initialId: string }) {
                         <p className="font-medium text-sm">{dept.department}</p>
                         <p className="text-xs text-muted-foreground">Assigned: {dept.assignedOfficer || 'Pending'}</p>
                       </div>
-                      <Badge variant={dept.status === 'approved' ? 'default' : dept.status === 'rejected' ? 'destructive' : 'outline'} className="capitalize text-xs">
+                      <Badge
+                        variant={dept.status === 'Approved' ? 'default' : dept.status === 'Rejected' ? 'destructive' : dept.status === 'Documents Requested' ? 'outline' : 'secondary'}
+                        className={`capitalize text-xs ${dept.status === 'Approved' ? 'bg-green-600 text-white' : dept.status === 'Documents Requested' ? 'border-amber-500 text-amber-500' : ''}`}
+                      >
                         {dept.status}
                       </Badge>
                     </div>
@@ -455,22 +458,83 @@ function ApplicationTracker({ initialId }: { initialId: string }) {
               </CardHeader>
               <CardContent className="p-6">
                 <ScrollArea className="h-[500px] pr-4">
-                  <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
-                    {data.workflowEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((event, index) => (
-                      <div key={event.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                        <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-background shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm ${index === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                          {index === 0 ? <Clock className="w-4 h-4 animate-pulse" /> : <Check className="w-4 h-4" />}
-                        </div>
-                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded border shadow-sm bg-card transition-all hover:shadow-md">
-                          <div className="flex items-center justify-between mb-1">
-                            <Badge variant="outline" className="text-[10px] font-mono">{event.department}</Badge>
-                            <time className="text-xs text-muted-foreground font-mono">{new Date(event.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</time>
+                  <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
+                    {data.workflowEvents
+                      .slice()
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map((event, index) => {
+                        const toState = event.toState;
+                        const fromState = event.fromState;
+                        const actor = event.actor;
+                        const isApproved = toState === 'Approved';
+                        const isRejected = toState === 'Rejected';
+                        const isDocReq = event.eventType === 'document.requested';
+                        const isLatest = index === 0;
+
+                        const iconBg = isApproved
+                          ? 'bg-green-600 text-white'
+                          : isRejected
+                          ? 'bg-destructive text-destructive-foreground'
+                          : isDocReq
+                          ? 'bg-amber-500 text-white'
+                          : isLatest
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground';
+
+                        const Icon = isApproved
+                          ? CheckCircle2
+                          : isRejected
+                          ? XCircle
+                          : isDocReq
+                          ? AlertCircle
+                          : isLatest
+                          ? RefreshCw
+                          : Check;
+
+                        const labelMap: Record<string, string> = {
+                          'workflow.state.changed': 'Status Updated',
+                          'document.requested': 'Document Requested',
+                          'adapter.foodsafety.received': 'Food Safety Adapter — Fields Mapped',
+                          'adapter.labour.received': 'Labour Adapter — Fields Mapped',
+                          'application.submitted': 'Application Submitted',
+                        };
+
+                        const label = labelMap[event.eventType] ?? event.eventType.replace(/[._]/g, ' ');
+
+                        return (
+                          <div key={event.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                            <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-background shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm ${iconBg}`}>
+                              <Icon className={`w-4 h-4 ${isLatest && !isApproved && !isRejected && !isDocReq ? 'animate-spin' : ''}`} />
+                            </div>
+                            <div className={`w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded border shadow-sm bg-card transition-all hover:shadow-md ${isApproved ? 'border-green-500/30 bg-green-500/5' : isRejected ? 'border-destructive/30 bg-destructive/5' : isDocReq ? 'border-amber-500/30 bg-amber-500/5' : ''}`}>
+                              <div className="flex items-center justify-between mb-1">
+                                <Badge variant="outline" className="text-[10px] font-mono">{event.department}</Badge>
+                                <time className="text-xs text-muted-foreground font-mono">
+                                  {new Date(event.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </time>
+                              </div>
+                              <h4 className={`font-semibold text-sm ${isApproved ? 'text-green-600 dark:text-green-400' : isRejected ? 'text-destructive' : isDocReq ? 'text-amber-600 dark:text-amber-400' : ''}`}>
+                                {label}
+                              </h4>
+                              {fromState && toState && (
+                                <div className="flex items-center gap-1.5 mt-1.5">
+                                  <span className="text-[11px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{fromState}</span>
+                                  <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                  <span className={`text-[11px] font-mono px-1.5 py-0.5 rounded font-semibold ${isApproved ? 'bg-green-500/20 text-green-600 dark:text-green-400' : isRejected ? 'bg-destructive/20 text-destructive' : isDocReq ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' : 'bg-primary/20 text-primary'}`}>
+                                    {toState}
+                                  </span>
+                                </div>
+                              )}
+                              {actor && (
+                                <p className="text-[11px] text-muted-foreground mt-1">by {actor}</p>
+                              )}
+                              {event.notes && (
+                                <p className="text-xs text-muted-foreground mt-2 border-l-2 pl-2 italic leading-relaxed">{event.notes}</p>
+                              )}
+                            </div>
                           </div>
-                          <h4 className="font-semibold text-sm capitalize">{event.eventType.replace(/_/g, ' ')}</h4>
-                          {event.notes && <p className="text-sm text-muted-foreground mt-2 border-l-2 pl-2 italic">{event.notes}</p>}
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })}
                     
                     {/* Submission Event (Base) */}
                     <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group">
@@ -480,10 +544,10 @@ function ApplicationTracker({ initialId }: { initialId: string }) {
                       <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded border shadow-sm bg-card/50">
                         <div className="flex items-center justify-between mb-1">
                           <Badge variant="outline" className="text-[10px] font-mono">SYSTEM</Badge>
-                          <time className="text-xs text-muted-foreground font-mono">{new Date(data.application.submittedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</time>
+                          <time className="text-xs text-muted-foreground font-mono">{new Date(data.application.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
                         </div>
                         <h4 className="font-semibold text-sm">Application Submitted</h4>
-                        <p className="text-sm text-muted-foreground mt-2">Received by BridgeSync Single Window Portal.</p>
+                        <p className="text-sm text-muted-foreground mt-1.5">Received by BridgeSync Single Window Portal.</p>
                       </div>
                     </div>
                   </div>
