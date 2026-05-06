@@ -1,0 +1,249 @@
+Build a full-stack web application called "BridgeSync" — an AI-driven two-way interoperability platform between Karnataka's Single Window Portal and multiple Government Department systems. This is a hackathon prototype that must look polished, feel real, and demonstrate end-to-end working flows with simulated data.
+
+---
+
+## TECH STACK
+- Frontend: React + Vite + TailwindCSS
+- Backend: Node.js + Express
+- Database: SQLite (via better-sqlite3, for zero-config persistence)
+- AI: Google Gemini API (gemini-1.5-flash) for semantic field mapping and anomaly detection
+- No Docker, no complex infra — must run on Replit free tier in one command: npm run dev
+
+---
+
+## APPLICATION ARCHITECTURE
+
+Three portals in one app, switchable via a top navigation bar:
+1. **Citizen Portal** — Single Window application submission & live status tracking
+2. **Officer Dashboard** — Department officer view to process applications
+3. **Admin / Analytics Dashboard** — BridgeSync control plane: schema mapper, SLA monitor, department onboarding wizard
+
+---
+
+## PORTAL 1: CITIZEN SINGLE WINDOW PORTAL
+
+### Application Submission Form
+Fields: Full Name, Aadhaar Number, Mobile, Email, Business Name, Business Type (dropdown: Food Processing / Manufacturing / Trade / IT Services / Construction), District (dropdown of Karnataka districts), Description of Activity, Intended Start Date, Upload Documents (simulated — just filename input)
+
+On submit:
+- Generate a unique application ID (format: KA-2026-XXXXX)
+- Store in SQLite
+- Trigger backend "adapter simulation" — auto-translate fields to both Food Safety Dept and Labour Dept formats and store mapped copies in dept_applications table
+- Show a success screen with the application ID and a "Track My Application" button
+
+### Live Application Status Tracker
+Input: Application ID
+Display a beautiful vertical timeline showing:
+- ✅ Submitted to Single Window (timestamp)
+- ✅ Forwarded to Department (which dept, timestamp)  
+- 🔄 Current Status inside Department (e.g., "Under Review by Officer Priya Sharma")
+- Any document requests from the officer (with ability to "upload" / respond)
+- Final approval/rejection with reason
+
+Status must auto-refresh every 10 seconds (polling) to simulate real-time updates.
+
+---
+
+## PORTAL 2: DEPARTMENT OFFICER DASHBOARD
+
+Login selector: Choose department — "Food Safety Department" or "Labour Department"
+Then choose officer name from a dropdown (seed 3 officers per dept)
+
+### Application Queue
+Table view of all pending applications assigned to this officer.
+Columns: App ID | Applicant Name | Business Type | District | Submitted Date | Days Pending | Status | Actions
+
+Color-code rows: Green (< 3 days), Yellow (3–7 days), Red (> 7 days, SLA breach)
+
+### Application Detail View
+Click any application to open a detail panel:
+- Show all fields in the department's native format (after BridgeSync schema translation)
+- Current workflow stage with a stepper: Received → Under Review → Documents Requested → Final Review → Decision
+- Action buttons:
+  - "Request Document" — opens a modal to type what document is needed; submits it; citizen sees this within seconds
+  - "Approve Application" — marks as approved with optional remarks
+  - "Reject Application" — requires rejection reason
+  - "Transfer to Senior Officer" — reassign within department
+
+All actions must write to SQLite and be immediately visible in the Citizen Portal tracker.
+
+---
+
+## PORTAL 3: ADMIN / ANALYTICS DASHBOARD (BridgeSync Control Plane)
+
+### 1. AI Schema Mapper (THE FLAGSHIP AI FEATURE)
+This is the centrepiece. Build a beautiful interactive UI:
+
+Left panel: Single Window portal fields (JSON schema shown as cards)
+Right panel: Department system fields (JSON schema shown as cards)
+
+A "Run AI Mapping" button calls the backend which calls Gemini API with this prompt:
+"You are a government data interoperability expert. Given these two field schemas from different government IT systems, identify semantically equivalent fields. Return JSON only."
+
+Display the AI-proposed mappings as animated connector lines between left and right cards (use SVG lines drawn between the matched field cards).
+
+Each mapping card shows:
+- Field A name → Field B name  
+- Confidence score (%)
+- Reasoning (one line from AI)
+- Buttons: ✅ Confirm | ✏️ Edit | ❌ Reject
+
+Show a "Learning from corrections" indicator — when an officer edits a mapping, show "Mapping updated. AI will learn from this correction." with a pulsing green dot.
+
+Pre-load schemas for:
+- Single Window → Food Safety Department (10 fields each, with intentionally mismatched names)
+- Single Window → Labour Department (10 fields each, different mismatches)
+
+### 2. Live SLA Monitor
+A real-time dashboard showing:
+- Total applications today / this week
+- Average processing time per department (bar chart using Recharts)
+- SLA breach count (applications > 7 days unresolved) — shown as a red alert badge
+- AI Anomaly Detection panel: A button "Run AI Anomaly Scan" that calls Gemini with current application stats and returns:
+  - List of anomalies detected (e.g., "3 applications idle for 5+ days in Food Safety Dept — probable cause: officer on leave")
+  - Recommended actions for each anomaly
+  Display these as beautiful alert cards with severity levels (High/Medium/Low)
+
+### 3. Department Onboarding Wizard
+A 5-step wizard UI:
+Step 1: Department Details (Name, NIC system type: REST/SOAP/Legacy/No-API)
+Step 2: Connection Test (simulated — shows "Connecting..." then "✅ Connection established. System fingerprint captured.")
+Step 3: AI Schema Discovery (calls backend → Gemini generates plausible field names for the dept system type → displays as discovered fields)
+Step 4: Review & Confirm Mappings (same connector line UI as Schema Mapper)
+Step 5: Go Live (shows "🎉 Department onboarded in 4 minutes 23 seconds. Adapter deployed.")
+
+### 4. Workflow State Translator
+Visual table showing how generic Single Window states map to each department's internal states:
+
+| Single Window State | Food Safety Dept State | Labour Dept State |
+|---|---|---|
+| Submitted | Application Logged | Form F Received |
+| Under Review | Technical Scrutiny | Labour Inspector Assigned |
+| Document Requested | Deficiency Notice Issued | Compliance Document Pending |
+| Approved | License Granted | Registration Certificate Issued |
+
+Allow admin to add/edit these mappings with an "Add Row" button.
+
+### 5. Event Bus Monitor (Bonus panel)
+A scrolling log panel that simulates Kafka event stream:
+Show real-time (simulated with setInterval) log entries like:
+[10:42:33] EVENT: application.submitted | ID: KA-2026-00123 | Routing to Food Safety...
+[10:42:34] EVENT: adapter.foodsafety.received | Fields mapped: 12/12 | Status: SUCCESS
+[10:42:35] EVENT: workflow.state.translated | SW: Submitted → FS: Application Logged
+
+New events stream in every 3-5 seconds, auto-scroll to bottom, max 50 entries visible.
+
+---
+
+## DATABASE SCHEMA (SQLite)
+
+Tables:
+- applications (id, app_id, citizen_name, aadhaar, mobile, email, business_name, business_type, district, description, start_date, documents, submitted_at, overall_status)
+- dept_applications (id, app_id, department, native_fields_json, status, assigned_officer, created_at, updated_at)
+- document_requests (id, app_id, department, document_name, requested_at, fulfilled_at, citizen_response)
+- workflow_events (id, app_id, department, event_type, from_state, to_state, actor, notes, created_at)
+- field_mappings (id, source_system, target_system, source_field, target_field, confidence, confirmed, corrected)
+- departments (id, name, system_type, adapter_status, onboarded_at)
+
+Seed the database on startup with:
+- 8 sample applications in various states
+- Assign them to officers
+- Add some document requests (some fulfilled, some pending)
+- Add workflow events history
+- Pre-populate field_mappings for Food Safety and Labour depts
+
+---
+
+## BACKEND API ROUTES
+
+POST /api/applications — submit new application
+GET /api/applications/:appId — get full status for citizen tracker
+GET /api/dept/:deptName/applications — officer queue
+PUT /api/dept/:deptName/applications/:appId/status — officer updates status
+POST /api/dept/:deptName/applications/:appId/request-document — officer requests doc
+POST /api/applications/:appId/respond-document — citizen uploads doc
+GET /api/analytics/summary — stats for dashboard
+POST /api/ai/schema-map — calls Gemini to map two schemas
+POST /api/ai/anomaly-scan — calls Gemini to detect anomalies
+POST /api/ai/schema-discover — generates plausible dept field names
+GET /api/field-mappings/:source/:target — get saved mappings
+PUT /api/field-mappings/:id — update/confirm mapping
+GET /api/events/stream — returns last 20 simulated events
+
+---
+
+## UI/UX DESIGN REQUIREMENTS
+
+Color palette: Deep navy (#0A1628) background, electric blue (#2563EB) primary, emerald green (#10B981) for success, amber (#F59E0B) for warnings, red (#EF4444) for breaches. White text. Clean government-tech aesthetic — not corporate boring, but trust-inspiring and modern.
+
+Typography: Use 'IBM Plex Sans' for body (very appropriate for government tech), 'Space Grotesk' for headings.
+
+Animations:
+- Page transitions with fade+slide
+- Application status timeline with animated progress
+- SVG connector lines in schema mapper animate in on load
+- Event bus log entries slide in from left
+- SLA breach cards pulse red gently
+- Loading states with skeleton screens
+
+Make it fully responsive (mobile works for citizen portal, desktop optimized for officer/admin).
+
+Add a floating "BridgeSync" logo badge in top-left — use a bridge icon (two pillars with an arc) as the logo, drawn in SVG.
+
+---
+
+## EXTRA IMPRESSIVE FEATURES FOR JUDGES
+
+1. **Multilingual Toggle**: Add a button to switch the Citizen Portal UI between English and Kannada (hardcode translations for key labels — form fields, status messages, button text). Show "ಅರ್ಜಿ ಸ್ಥಿತಿ" instead of "Application Status" etc. This shows Karnataka-specific localisation.
+
+2. **WhatsApp Notification Simulator**: After officer approves/rejects, show a simulated WhatsApp message preview (styled like WhatsApp UI) that would be sent to the citizen: "ನಮಸ್ಕಾರ [Name], ನಿಮ್ಮ ಅರ್ಜಿ KA-2026-XXXXX ಅನುಮೋದಿಸಲಾಗಿದೆ. / Your application KA-2026-XXXXX has been APPROVED." This shows last-mile delivery thinking.
+
+3. **AI Chatbot (Citizen Help)**: A floating chat bubble on the Citizen Portal. When clicked, opens a chat interface. Calls Gemini with system prompt: "You are a helpful Karnataka government portal assistant. Help citizens understand their application status and what documents they need. Be friendly and speak in simple English or Kannada based on the citizen's language." Pass the current application status as context.
+
+4. **Compliance Score Card**: On the Admin dashboard, show a "Department Health Score" card for each onboarded department — a circular progress indicator (0–100) based on: avg processing time, SLA compliance %, document request rate, rejection rate. Makes it feel like a real monitoring product.
+
+5. **Export to PDF Button**: On the Analytics dashboard, a "Download Report" button that generates a simple HTML-to-print report of the analytics summary (use window.print() with a print stylesheet).
+
+6. **Demo Mode Toggle**: A toggle in the navbar "🎬 Demo Mode" — when ON, it accelerates all timers (events stream faster, auto-advances one seeded application through all stages over 60 seconds) so judges can see the full flow in real-time during the presentation without waiting.
+
+---
+
+## ENVIRONMENT VARIABLES NEEDED
+GEMINI_API_KEY=your_key_here
+
+Store in Replit Secrets. The app must gracefully fall back to mock AI responses if the key is missing (so it never crashes during demo).
+
+---
+
+## FOLDER STRUCTURE
+/
+├── client/          (React + Vite frontend)
+│   ├── src/
+│   │   ├── pages/   (CitizenPortal, OfficerDashboard, AdminDashboard)
+│   │   ├── components/
+│   │   └── App.jsx
+├── server/          (Express backend)
+│   ├── routes/
+│   ├── db.js        (SQLite setup + seeding)
+│   ├── aiService.js (Gemini calls)
+│   └── index.js
+├── package.json     (root with concurrently to run both)
+└── README.md
+
+Use concurrently to run both client and server with: npm run dev
+
+---
+
+## README REQUIREMENTS
+Include:
+- What BridgeSync solves (the problem story)
+- Architecture diagram (ASCII art is fine)
+- How to run
+- How to use each portal
+- API documentation
+- The AI features explained
+- Future roadmap
+
+---
+
+Build the complete, working application. Make it impressive enough to win a government hackathon judged by IAS officers, IIT alumni, and VCs. Every feature should work end-to-end. The AI schema mapper with visual connector lines is the most important feature — make it stunning.

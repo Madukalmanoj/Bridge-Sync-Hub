@@ -3,20 +3,32 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: BridgeSync API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: applications
+    description: Citizen applications
+  - name: departments
+    description: Department officer operations
+  - name: analytics
+    description: Analytics and monitoring
+  - name: ai
+    description: AI-powered features
+  - name: events
+    description: Event bus monitoring
+  - name: mappings
+    description: Field mappings
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +36,414 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /applications:
+    post:
+      operationId: submitApplication
+      tags: [applications]
+      summary: Submit new application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitApplicationBody"
+      responses:
+        "201":
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "400":
+          description: Invalid input
+
+  /applications/{appId}:
+    get:
+      operationId: getApplication
+      tags: [applications]
+      summary: Get application status for citizen tracker
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Application with full timeline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationDetail"
+        "404":
+          description: Not found
+
+  /applications/{appId}/respond-document:
+    post:
+      operationId: respondDocument
+      tags: [applications]
+      summary: Citizen responds to document request
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RespondDocumentBody"
+      responses:
+        "200":
+          description: Response recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentRequest"
+
+  /dept/{deptName}/applications:
+    get:
+      operationId: getDeptApplications
+      tags: [departments]
+      summary: Get officer queue for a department
+      parameters:
+        - name: deptName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: officerId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of dept applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeptApplication"
+
+  /dept/{deptName}/applications/{appId}/status:
+    put:
+      operationId: updateDeptApplicationStatus
+      tags: [departments]
+      summary: Officer updates application status
+      parameters:
+        - name: deptName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStatusBody"
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeptApplication"
+
+  /dept/{deptName}/applications/{appId}/request-document:
+    post:
+      operationId: requestDocument
+      tags: [departments]
+      summary: Officer requests a document from citizen
+      parameters:
+        - name: deptName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: appId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestDocumentBody"
+      responses:
+        "201":
+          description: Document requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentRequest"
+
+  /officers/{deptName}:
+    get:
+      operationId: getOfficers
+      tags: [departments]
+      summary: Get officers for a department
+      parameters:
+        - name: deptName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of officers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Officer"
+
+  /analytics/summary:
+    get:
+      operationId: getAnalyticsSummary
+      tags: [analytics]
+      summary: Get analytics summary for admin dashboard
+      responses:
+        "200":
+          description: Analytics summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsSummary"
+
+  /analytics/dept-stats:
+    get:
+      operationId: getDeptStats
+      tags: [analytics]
+      summary: Get per-department processing stats
+      responses:
+        "200":
+          description: Department stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeptStat"
+
+  /ai/schema-map:
+    post:
+      operationId: runSchemaMapping
+      tags: [ai]
+      summary: AI-powered schema field mapping
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SchemaMappingBody"
+      responses:
+        "200":
+          description: Mapping results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FieldMapping"
+
+  /ai/anomaly-scan:
+    post:
+      operationId: runAnomalyScan
+      tags: [ai]
+      summary: AI anomaly detection on application stats
+      responses:
+        "200":
+          description: Anomalies detected
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Anomaly"
+
+  /ai/schema-discover:
+    post:
+      operationId: discoverSchema
+      tags: [ai]
+      summary: AI discovers field schema for a department system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SchemaDiscoverBody"
+      responses:
+        "200":
+          description: Discovered fields
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiscoveredField"
+
+  /ai/chat:
+    post:
+      operationId: chatWithAssistant
+      tags: [ai]
+      summary: Chat with AI citizen assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatBody"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+
+  /field-mappings/{source}/{target}:
+    get:
+      operationId: getFieldMappings
+      tags: [mappings]
+      summary: Get saved field mappings for source-target pair
+      parameters:
+        - name: source
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: target
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Field mappings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FieldMappingRecord"
+
+  /field-mappings/{id}:
+    put:
+      operationId: updateFieldMapping
+      tags: [mappings]
+      summary: Update/confirm a field mapping
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMappingBody"
+      responses:
+        "200":
+          description: Updated mapping
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FieldMappingRecord"
+
+  /workflow-states:
+    get:
+      operationId: getWorkflowStates
+      tags: [analytics]
+      summary: Get workflow state translations
+      responses:
+        "200":
+          description: Workflow state translations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkflowState"
+    post:
+      operationId: addWorkflowState
+      tags: [analytics]
+      summary: Add workflow state translation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowStateBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowState"
+
+  /events/stream:
+    get:
+      operationId: getEventStream
+      tags: [events]
+      summary: Get last 20 simulated event bus events
+      responses:
+        "200":
+          description: Events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventEntry"
+
+  /departments:
+    get:
+      operationId: getDepartments
+      tags: [departments]
+      summary: Get all departments
+      responses:
+        "200":
+          description: Departments list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Department"
+    post:
+      operationId: onboardDepartment
+      tags: [departments]
+      summary: Onboard a new department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardDepartmentBody"
+      responses:
+        "201":
+          description: Department onboarded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +454,516 @@ components:
       required:
         - status
 
+    Application:
+      type: object
+      properties:
+        id:
+          type: integer
+        appId:
+          type: string
+        citizenName:
+          type: string
+        aadhaar:
+          type: string
+        mobile:
+          type: string
+        email:
+          type: string
+        businessName:
+          type: string
+        businessType:
+          type: string
+        district:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+        documents:
+          type: string
+        submittedAt:
+          type: string
+        overallStatus:
+          type: string
+      required:
+        - id
+        - appId
+        - citizenName
+        - mobile
+        - businessName
+        - businessType
+        - district
+        - submittedAt
+        - overallStatus
+
+    SubmitApplicationBody:
+      type: object
+      properties:
+        citizenName:
+          type: string
+        aadhaar:
+          type: string
+        mobile:
+          type: string
+        email:
+          type: string
+        businessName:
+          type: string
+        businessType:
+          type: string
+        district:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+        documents:
+          type: string
+      required:
+        - citizenName
+        - mobile
+        - businessName
+        - businessType
+        - district
+
+    ApplicationDetail:
+      type: object
+      properties:
+        application:
+          $ref: "#/components/schemas/Application"
+        deptApplications:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeptApplication"
+        documentRequests:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentRequest"
+        workflowEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowEvent"
+      required:
+        - application
+        - deptApplications
+        - documentRequests
+        - workflowEvents
+
+    DeptApplication:
+      type: object
+      properties:
+        id:
+          type: integer
+        appId:
+          type: string
+        department:
+          type: string
+        nativeFieldsJson:
+          type: string
+        status:
+          type: string
+        assignedOfficer:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        citizenName:
+          type: ["string", "null"]
+        businessType:
+          type: ["string", "null"]
+        district:
+          type: ["string", "null"]
+        daysPending:
+          type: ["integer", "null"]
+      required:
+        - id
+        - appId
+        - department
+        - status
+        - createdAt
+        - updatedAt
+
+    DocumentRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        appId:
+          type: string
+        department:
+          type: string
+        documentName:
+          type: string
+        requestedAt:
+          type: string
+        fulfilledAt:
+          type: ["string", "null"]
+        citizenResponse:
+          type: ["string", "null"]
+      required:
+        - id
+        - appId
+        - department
+        - documentName
+        - requestedAt
+
+    WorkflowEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        appId:
+          type: string
+        department:
+          type: string
+        eventType:
+          type: string
+        fromState:
+          type: ["string", "null"]
+        toState:
+          type: ["string", "null"]
+        actor:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - appId
+        - department
+        - eventType
+        - createdAt
+
+    UpdateStatusBody:
+      type: object
+      properties:
+        status:
+          type: string
+        actor:
+          type: string
+        notes:
+          type: string
+      required:
+        - status
+
+    RequestDocumentBody:
+      type: object
+      properties:
+        documentName:
+          type: string
+        officerName:
+          type: string
+      required:
+        - documentName
+
+    RespondDocumentBody:
+      type: object
+      properties:
+        documentId:
+          type: integer
+        citizenResponse:
+          type: string
+      required:
+        - documentId
+        - citizenResponse
+
+    Officer:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        department:
+          type: string
+        role:
+          type: string
+      required:
+        - id
+        - name
+        - department
+        - role
+
+    AnalyticsSummary:
+      type: object
+      properties:
+        totalApplications:
+          type: integer
+        todayApplications:
+          type: integer
+        weekApplications:
+          type: integer
+        pendingApplications:
+          type: integer
+        approvedApplications:
+          type: integer
+        rejectedApplications:
+          type: integer
+        slaBreaches:
+          type: integer
+        avgProcessingDays:
+          type: number
+      required:
+        - totalApplications
+        - todayApplications
+        - weekApplications
+        - pendingApplications
+        - approvedApplications
+        - rejectedApplications
+        - slaBreaches
+        - avgProcessingDays
+
+    DeptStat:
+      type: object
+      properties:
+        department:
+          type: string
+        total:
+          type: integer
+        pending:
+          type: integer
+        approved:
+          type: integer
+        rejected:
+          type: integer
+        avgDays:
+          type: number
+        slaBreaches:
+          type: integer
+        healthScore:
+          type: integer
+      required:
+        - department
+        - total
+        - pending
+        - approved
+        - rejected
+        - avgDays
+        - slaBreaches
+        - healthScore
+
+    SchemaMappingBody:
+      type: object
+      properties:
+        sourceSystem:
+          type: string
+        targetSystem:
+          type: string
+        sourceFields:
+          type: array
+          items:
+            type: string
+        targetFields:
+          type: array
+          items:
+            type: string
+      required:
+        - sourceSystem
+        - targetSystem
+        - sourceFields
+        - targetFields
+
+    FieldMapping:
+      type: object
+      properties:
+        sourceField:
+          type: string
+        targetField:
+          type: string
+        confidence:
+          type: integer
+        reasoning:
+          type: string
+      required:
+        - sourceField
+        - targetField
+        - confidence
+        - reasoning
+
+    FieldMappingRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        sourceSystem:
+          type: string
+        targetSystem:
+          type: string
+        sourceField:
+          type: string
+        targetField:
+          type: string
+        confidence:
+          type: integer
+        confirmed:
+          type: boolean
+        corrected:
+          type: boolean
+      required:
+        - id
+        - sourceSystem
+        - targetSystem
+        - sourceField
+        - targetField
+        - confidence
+        - confirmed
+        - corrected
+
+    UpdateMappingBody:
+      type: object
+      properties:
+        targetField:
+          type: string
+        confirmed:
+          type: boolean
+        corrected:
+          type: boolean
+
+    Anomaly:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+        recommendation:
+          type: string
+        department:
+          type: ["string", "null"]
+      required:
+        - title
+        - description
+        - severity
+        - recommendation
+
+    SchemaDiscoverBody:
+      type: object
+      properties:
+        departmentName:
+          type: string
+        systemType:
+          type: string
+      required:
+        - departmentName
+        - systemType
+
+    DiscoveredField:
+      type: object
+      properties:
+        fieldName:
+          type: string
+        fieldType:
+          type: string
+        description:
+          type: string
+      required:
+        - fieldName
+        - fieldType
+        - description
+
+    ChatBody:
+      type: object
+      properties:
+        message:
+          type: string
+        appId:
+          type: ["string", "null"]
+        language:
+          type: string
+      required:
+        - message
+
+    ChatResponse:
+      type: object
+      properties:
+        reply:
+          type: string
+      required:
+        - reply
+
+    WorkflowState:
+      type: object
+      properties:
+        id:
+          type: integer
+        swState:
+          type: string
+        foodSafetyState:
+          type: string
+        labourState:
+          type: string
+      required:
+        - id
+        - swState
+        - foodSafetyState
+        - labourState
+
+    WorkflowStateBody:
+      type: object
+      properties:
+        swState:
+          type: string
+        foodSafetyState:
+          type: string
+        labourState:
+          type: string
+      required:
+        - swState
+        - foodSafetyState
+        - labourState
+
+    EventEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        timestamp:
+          type: string
+        eventType:
+          type: string
+        appId:
+          type: ["string", "null"]
+        message:
+          type: string
+        status:
+          type: string
+      required:
+        - id
+        - timestamp
+        - eventType
+        - message
+        - status
+
+    Department:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        systemType:
+          type: string
+        adapterStatus:
+          type: string
+        onboardedAt:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+        - systemType
+        - adapterStatus
+
+    OnboardDepartmentBody:
+      type: object
+      properties:
+        name:
+          type: string
+        systemType:
+          type: string
+      required:
+        - name
+        - systemType
